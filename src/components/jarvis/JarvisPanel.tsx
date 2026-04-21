@@ -40,7 +40,6 @@ export function JarvisPanel() {
   };
 
   const handleChipClick = (text: string) => {
-    setInputText(text);
     sendMessage(text);
   };
 

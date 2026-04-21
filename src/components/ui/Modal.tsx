@@ -50,7 +50,7 @@ export function Modal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-6">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -77,15 +77,16 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2 } }}
             className={cn(
               "relative w-full bg-surface border border-border shadow-2xl rounded-2xl overflow-hidden",
-              "flex flex-col max-h-[90vh]", // Bottom-sheet like behavior on small screens is handled by the wrapper centering + padding
+              "flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh]",
+              "rounded-b-none sm:rounded-b-2xl",
               maxWidthClasses[maxWidth],
-              "md:my-8",
+              "sm:my-8",
               className
             )}
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border bg-surface">
                 {title ? (
                   <h3 className="text-lg font-semibold text-text leading-none">
                     {title}
@@ -105,7 +106,7 @@ export function Modal({
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {children}
             </div>
           </motion.div>

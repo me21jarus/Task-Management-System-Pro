@@ -37,6 +37,7 @@ export default function TeamBoard() {
     tasks, 
     members, 
     loading, 
+    error,
     isManager, 
     addTask, 
     updateTask, 
@@ -137,7 +138,12 @@ export default function TeamBoard() {
   if (!team) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-bg p-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Team not found</h1>
+        <h1 className="text-2xl font-bold mb-3">
+          {error || "You are not added to any team yet."}
+        </h1>
+        <p className="text-text-muted max-w-md mb-6">
+          Join or create a team first, then your team dashboard and assignments will appear here.
+        </p>
         <Button onClick={() => navigate("/app/teams")}>Back to Teams</Button>
       </div>
     );
@@ -540,8 +546,9 @@ export default function TeamBoard() {
         isOpen={isAddTaskModalOpen}
         onClose={() => setIsAddTaskModalOpen(false)}
         title="Create Team Task"
+        maxWidth="sm"
       >
-        <form onSubmit={handleCreateTask} className="space-y-6 pt-4">
+        <form onSubmit={handleCreateTask} className="space-y-5 pt-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-muted">Task Title</label>
             <Input
@@ -563,7 +570,7 @@ export default function TeamBoard() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-text-muted">Priority</label>
               <select
@@ -603,7 +610,7 @@ export default function TeamBoard() {
             </select>
           </div>
 
-          <div className="flex justify-end gap-3 mt-8">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-6">
             <Button variant="ghost" type="button" onClick={() => setIsAddTaskModalOpen(false)}>
               Cancel
             </Button>

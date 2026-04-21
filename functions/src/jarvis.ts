@@ -98,7 +98,7 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "filterTasks",
-      description: "Filter tasks by priority, status, or date range",
+      description: "Filter tasks by priority, status, or date range. Omit optional fields that are not specified; never send empty strings.",
       parameters: {
         type: "object",
         properties: {
@@ -170,6 +170,58 @@ const TOOLS: Groq.Chat.ChatCompletionTool[] = [
   }
 ];
 
+function normalizeToolArgs(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(normalizeToolArgs);
+  }
+
+  if (value && typeof value === "object") {
+    if ("value" in value && "type" in value && Object.keys(value).length <= 2) {
+      return normalizeToolArgs(value.value);
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, normalizeToolArgs(nestedValue)])
+    );
+  }
+
+  return value;
+}
+
+function isToolValidationFailure(error: any): boolean {
+  const message = String(error?.message ?? "").toLowerCase();
+  return (
+    message.includes("tool call validation failed") ||
+    message.includes("tool_use_failed") ||
+    message.includes("parameters for tool")
+  );
+}
+
+async function createJarvisCompletion(
+  groq: Groq,
+  messages: Groq.Chat.ChatCompletionMessageParam[],
+  extraInstruction?: string
+) {
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: extraInstruction
+      ? [
+          ...messages,
+          {
+            role: "system",
+            content: extraInstruction,
+          },
+        ]
+      : messages,
+    tools: TOOLS,
+    tool_choice: "auto",
+    max_tokens: 512,
+    temperature: extraInstruction ? 0 : 0.1,
+  });
+
+  return completion;
+}
+
 export const jarvis = onCall({
   cors: true,
   maxInstances: 10,
@@ -209,7 +261,13 @@ export const jarvis = onCall({
 Be brief and action-oriented. Use the provided tools to manage the user's tasks.
 Today is ${new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
 Current tasks: ${JSON.stringify(taskSummary)}
-After any action, give a short confirmation. Keep responses under 2 sentences.`;
+After any action, give a short confirmation. Keep responses under 2 sentences.
+Return tool arguments as plain JSON values only. Do not wrap fields in objects like {"type":"string","value":"..."}.
+If a tool field is optional and you do not know its value, omit that field completely.
+Never send empty strings for enum or date fields.
+Never return JSON schema metadata such as "type", "properties", "required", "description", or "enum" as parameter values.
+Example addTask call: {"title":"Review sales report","priority":"High","dueDate":"2026-04-21"}.
+Example filterTasks call: {"status":"pending","dateFrom":"2026-04-21","dateTo":"2026-04-21"}.`;
 
     // 4. Build message history in OpenAI format (Groq is OpenAI-compatible)
     const chatMessages: Groq.Chat.ChatCompletionMessageParam[] = [
@@ -223,14 +281,28 @@ After any action, give a short confirmation. Keep responses under 2 sentences.`;
     ];
 
     // 5. Call Groq
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: chatMessages,
-      tools: TOOLS,
-      tool_choice: "auto",
-      max_tokens: 512,
-      temperature: 0.3,
-    });
+    let completion;
+    try {
+      completion = await createJarvisCompletion(groq, chatMessages);
+    } catch (error: any) {
+      if (!isToolValidationFailure(error)) {
+        throw error;
+      }
+
+      logger.warn("Retrying malformed tool call with stricter instruction", {
+        message: error?.message,
+      });
+
+      completion = await createJarvisCompletion(
+        groq,
+        chatMessages,
+        `Your previous tool call was invalid because you returned schema-like objects instead of concrete values.
+Return exactly one valid tool call if a tool is needed.
+Use only plain JSON primitive values and arrays/objects of actual values.
+Do not include schema keys like "type", "properties", "required", "description", or "enum".
+For addTask, "title" must be a real task title string, "priority" must be "Low", "Medium", or "High", and "dueDate" must be an ISO date string only when known.`
+      );
+    }
 
     const choice = completion.choices[0];
     const responseMessage = choice.message;
@@ -247,6 +319,7 @@ After any action, give a short confirmation. Keep responses under 2 sentences.`;
       let parsedArgs: Record<string, any> = {};
       try {
         parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
+        parsedArgs = normalizeToolArgs(parsedArgs);
       } catch {
         logger.warn("Failed to parse tool args:", toolCall.function.arguments);
       }

@@ -14,6 +14,40 @@ export type JarvisStatus = "idle" | "thinking" | "speaking" | "error" | "cooldow
 const MIN_INTERVAL_MS = 12000; // 12s gap — safely under 5 RPM free-tier quota
 const RATE_LIMIT_COOLDOWNS = [30, 60, 90]; // escalating backoff on repeated 429s
 
+function normalizeToolArgs(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(normalizeToolArgs);
+  }
+
+  if (value && typeof value === "object") {
+    if ("value" in value && "type" in value && Object.keys(value).length <= 2) {
+      return normalizeToolArgs(value.value);
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [key, normalizeToolArgs(nestedValue)])
+    );
+  }
+
+  return value;
+}
+
+function stripEmptyOptionalFields(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(stripEmptyOptionalFields);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([key, nestedValue]) => [key, stripEmptyOptionalFields(nestedValue)])
+        .filter(([, nestedValue]) => nestedValue !== "")
+    );
+  }
+
+  return value;
+}
+
 function localNarrate(toolName: string, args: Record<string, any>, result: any): string {
   const title = args?.title || args?.query || "";
   switch (toolName) {
@@ -99,8 +133,71 @@ export const useJarvis = () => {
     return msg;
   }, []);
 
+  const handleLocalQuickPrompt = useCallback(async (text: string) => {
+    const normalized = text.trim().toLowerCase();
+    const today = new Date().toLocaleDateString("en-CA");
+
+    if (normalized === "what's pending today?" || normalized === "what is pending today?") {
+      await appendMessage("user", text);
+
+      const pendingToday = tasks.filter(
+        (task) => task.status === "pending" && task.dueDate === today
+      );
+      const pendingOverall = tasks.filter((task) => task.status === "pending");
+
+      let reply = "";
+      if (pendingToday.length > 0) {
+        const preview = pendingToday
+          .slice(0, 5)
+          .map((task) => `• ${task.title}`)
+          .join("\n");
+        reply = `You have ${pendingToday.length} pending task${pendingToday.length === 1 ? "" : "s"} due today.\n${preview}`;
+      } else if (pendingOverall.length > 0) {
+        reply = `You have no tasks due today. You still have ${pendingOverall.length} pending task${pendingOverall.length === 1 ? "" : "s"} overall.`;
+      } else {
+        reply = "You have no pending tasks right now.";
+      }
+
+      await appendMessage("assistant", reply);
+      setStatus("idle");
+      setError(null);
+      return true;
+    }
+
+    if (normalized === "sort by due date") {
+      await appendMessage("user", text);
+      const result = await taskManager.sortTasks("dueDate");
+      await appendMessage("assistant", result);
+      setStatus("idle");
+      setError(null);
+      return true;
+    }
+
+    if (normalized === "clear all filters") {
+      await appendMessage("user", text);
+      const result = await taskManager.clearFilters();
+      await appendMessage("assistant", result);
+      setStatus("idle");
+      setError(null);
+      return true;
+    }
+
+    if (normalized === "add a high priority task") {
+      await appendMessage("user", text);
+      await appendMessage("assistant", 'Tell me the task title, and I will add it as High priority.');
+      setStatus("idle");
+      setError(null);
+      return true;
+    }
+
+    return false;
+  }, [appendMessage, taskManager, tasks]);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || !functions) return;
+
+    const handledLocally = await handleLocalQuickPrompt(text);
+    if (handledLocally) return;
 
     // Client-side rate limiting — enforce minimum gap between requests
     const now = Date.now();
@@ -133,13 +230,17 @@ export const useJarvis = () => {
       const { content, functionCall } = result.data;
 
       if (functionCall) {
-        logger.info("Executing tool:", functionCall.name, functionCall.args);
+        const normalizedArgs = stripEmptyOptionalFields(normalizeToolArgs(functionCall.args));
+        logger.info("Executing tool:", functionCall.name, normalizedArgs);
         const executor = toolExecutors[functionCall.name];
         if (executor) {
           try {
-            const toolResult = await executor(functionCall.args, taskManager);
-            const narration = localNarrate(functionCall.name, functionCall.args, toolResult);
-            await appendMessage("assistant", narration, functionCall);
+            const toolResult = await executor(normalizedArgs, taskManager);
+            const narration = localNarrate(functionCall.name, normalizedArgs, toolResult);
+            await appendMessage("assistant", narration, {
+              ...functionCall,
+              args: normalizedArgs,
+            });
           } catch (err: any) {
             logger.error("Tool execution failed:", err);
             await appendMessage("assistant", `I tried to ${functionCall.name}, but something went wrong. ${err.message}`);
@@ -177,7 +278,7 @@ export const useJarvis = () => {
         await appendMessage("assistant", "I'm having trouble connecting right now. Please try again.");
       }
     }
-  }, [tasks, appendMessage, taskManager, startCooldown]);
+  }, [tasks, appendMessage, taskManager, startCooldown, handleLocalQuickPrompt]);
 
   const clearHistory = useCallback(async () => {
     await clearIDBHistory();

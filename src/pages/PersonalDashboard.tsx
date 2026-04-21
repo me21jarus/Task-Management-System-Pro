@@ -149,12 +149,12 @@ export default function PersonalDashboard() {
         onClick={openCreateModal}
         className={cn(
           "fixed z-40 cursor-pointer flex items-center justify-center",
-          "w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30",
-          "bottom-44 right-4 lg:bottom-12 lg:right-[380px] xl:right-[400px]" // Above mobile Jarvis, and right-bottom of middle page on desktop
+          "w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30",
+          "bottom-36 right-4 lg:bottom-12 lg:right-[380px] xl:right-[400px]" // Above mobile Jarvis, and right-bottom of middle page on desktop
         )}
         aria-label="Create new task"
       >
-        <Plus size={28} strokeWidth={2.5} />
+        <Plus size={24} strokeWidth={2.5} />
       </motion.button>
     </div>
   );

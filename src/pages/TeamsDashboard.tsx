@@ -20,6 +20,7 @@ export default function TeamsDashboard() {
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -27,7 +28,13 @@ export default function TeamsDashboard() {
   const [isJoining, setIsJoining] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user || !db) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
 
     // Real-time listener for invitations
     let unsubInvites: () => void;
@@ -38,30 +45,51 @@ export default function TeamsDashboard() {
         where("status", "==", "pending")
       );
       
-      unsubInvites = onSnapshot(inviteQuery, async (snapshot) => {
-        const invites = [];
-        for (const inviteDoc of snapshot.docs) {
-          const inviteData = inviteDoc.data();
-          try {
-            const teamSnap = await getDoc(doc(db!, "teams", inviteData.teamId));
-            invites.push({
-              id: inviteDoc.id,
-              ...inviteData,
-              teamName: teamSnap.exists() ? (teamSnap.data() as any).name : "Unknown Team"
-            });
-          } catch (err) {
-            logger.error("Failed to fetch team name for invite:", err);
+      unsubInvites = onSnapshot(
+        inviteQuery,
+        async (snapshot) => {
+          const invites = [];
+          for (const inviteDoc of snapshot.docs) {
+            const inviteData = inviteDoc.data();
+            try {
+              const teamSnap = await getDoc(doc(db!, "teams", inviteData.teamId));
+              invites.push({
+                id: inviteDoc.id,
+                ...inviteData,
+                teamName: teamSnap.exists() ? (teamSnap.data() as any).name : "Unknown Team"
+              });
+            } catch (err) {
+              logger.error("Failed to fetch team name for invite:", err);
+            }
           }
+          setPendingInvites(invites);
+        },
+        (err) => {
+          logger.error("Failed to subscribe to invites:", err);
+          setPendingInvites([]);
         }
-        setPendingInvites(invites);
-      });
+      );
     }
 
     // Real-time listener for teams
-    const unsubTeams = subscribeToTeams(user.uid, (fetchedTeams) => {
-      setTeams(fetchedTeams);
+    const unsubTeams = subscribeToTeams(
+      user.uid,
+      (fetchedTeams) => {
+        setTeams(fetchedTeams);
+        setLoading(false);
+      },
+      (err) => {
+        logger.error("Failed to subscribe to teams:", err);
+        setTeams([]);
+        setError("We couldn't load your teams right now.");
+        setLoading(false);
+      }
+    );
+
+    if (!unsubTeams) {
+      setTeams([]);
       setLoading(false);
-    });
+    }
 
     return () => {
       if (unsubInvites) unsubInvites();
@@ -139,6 +167,20 @@ export default function TeamsDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16">
+        <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+          <h1 className="text-2xl font-bold text-text mb-3">Unable to load team dashboards</h1>
+          <p className="text-text-muted mb-6">{error}</p>
+          <Button variant="outline" onClick={() => navigate("/app/personal")}>
+            Back to Personal Dashboard
+          </Button>
+        </div>
       </div>
     );
   }

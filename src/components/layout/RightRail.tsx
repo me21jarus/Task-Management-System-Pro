@@ -191,15 +191,15 @@ export function RightRail() {
       {/* ── Mobile Overlays (<1024px) ── */}
       <div className="lg:hidden">
         {/* Floating Action Button for Jarvis */}
-        <div className="fixed bottom-24 right-4 z-40">
+        <div className="fixed bottom-20 right-4 z-40">
           <motion.button
             onClick={() => setIsJarvisOpen(true)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 flex items-center justify-center cursor-pointer"
+            className="w-12 h-12 rounded-full bg-primary text-white shadow-lg shadow-primary/30 flex items-center justify-center cursor-pointer"
             aria-label="Open Jarvis AI"
           >
-            <MessageSquare size={24} />
+            <MessageSquare size={20} />
           </motion.button>
         </div>
 
@@ -235,7 +235,7 @@ export function RightRail() {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed bottom-0 left-0 right-0 z-50 bg-bg border-t border-border rounded-t-3xl p-6 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] overflow-hidden"
+                className="fixed bottom-0 left-0 right-0 z-50 bg-bg border-t border-border rounded-t-3xl p-4 sm:p-6 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] overflow-hidden max-h-[78dvh] flex flex-col"
               >
                 <div className="w-12 h-1.5 bg-border rounded-full mx-auto mb-6" />
                 <div className="flex items-center justify-between mb-4">
@@ -250,12 +250,14 @@ export function RightRail() {
                     <ChevronDown size={18} />
                   </button>
                 </div>
-                <CalendarWidget 
-                  tasks={tasks} 
-                  selectedDate={filters.dateFrom === filters.dateTo ? filters.dateFrom : undefined}
-                  onDateSelect={handleDateSelect}
-                />
-                <div className="h-4" />
+                <div className="flex-1 overflow-y-auto pr-1">
+                  <CalendarWidget 
+                    tasks={tasks} 
+                    selectedDate={filters.dateFrom === filters.dateTo ? filters.dateFrom : undefined}
+                    onDateSelect={handleDateSelect}
+                  />
+                  <div className="h-4" />
+                </div>
               </motion.div>
             </>
           )}
@@ -279,7 +281,7 @@ export function RightRail() {
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed bottom-24 right-4 z-50 w-[calc(100%-32px)] max-w-[340px] bg-bg border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                className="fixed bottom-20 right-3 left-3 z-50 w-auto max-w-[360px] sm:left-auto sm:right-4 bg-bg border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(70dvh,560px)]"
               >
                 <div className="bg-surface border-b border-border p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -298,7 +300,7 @@ export function RightRail() {
                     <ChevronDown size={18} />
                   </button>
                 </div>
-                <div className="p-4">
+                <div className="p-3 min-h-0 flex-1 overflow-hidden">
                   <JarvisPanel />
                 </div>
               </motion.div>

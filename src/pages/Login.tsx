@@ -171,7 +171,7 @@ export default function Login() {
 
   return (
     <div 
-      className="fixed inset-0 flex flex-col md:flex-row bg-bg overflow-hidden"
+      className="min-h-screen md:h-screen flex flex-col md:flex-row bg-bg overflow-x-hidden overflow-y-auto"
       onMouseMove={handleMouseMove}
     >
       {/* Spotlight Effect */}
@@ -183,8 +183,8 @@ export default function Login() {
         }}
       />
       {/* ── Left side: rotating phrases ── */}
-      <div className="flex-1 flex items-center justify-center p-8 md:p-12 z-10">
-        <div className="relative h-40 md:h-64 flex items-center justify-center w-full">
+      <div className="flex-1 flex items-center justify-center px-6 pt-10 pb-4 md:p-12 z-10 min-h-[28vh] md:min-h-0">
+        <div className="relative h-24 sm:h-32 md:h-64 flex items-center justify-center w-full">
           <AnimatePresence mode="wait">
             <motion.h2
               key={phraseIndex}
@@ -195,7 +195,7 @@ export default function Login() {
                 duration: 0.6,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="font-display text-4xl md:text-6xl lg:text-7xl tracking-wider text-text text-center leading-tight px-4"
+              className="font-display text-3xl sm:text-4xl md:text-6xl lg:text-7xl tracking-wider text-text text-center leading-tight px-4"
             >
               {PHRASES[phraseIndex]}
             </motion.h2>
@@ -204,7 +204,7 @@ export default function Login() {
       </div>
 
       {/* ── Right side: auth form ── */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 z-10">
+      <div className="flex-1 flex items-start md:items-center justify-center px-4 pb-8 md:p-12 z-10">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}

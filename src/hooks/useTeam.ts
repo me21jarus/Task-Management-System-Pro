@@ -13,6 +13,7 @@ import {
 import type { TeamTask, TeamMember, Team } from "../types/team";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { logger } from "../lib/logger";
 
 export function useTeam(teamId: string | undefined) {
   const { user } = useAuth();
@@ -28,27 +29,48 @@ export function useTeam(teamId: string | undefined) {
 
   // Fetch team details
   useEffect(() => {
-    if (!teamId || !db) return;
+    if (!teamId || !db || !user) {
+      setLoading(false);
+      if (!teamId) {
+        setError("No team selected");
+      }
+      return;
+    }
 
     const fetchTeam = async () => {
       try {
         const teamDoc = await getDoc(doc(db!, "teams", teamId));
         if (teamDoc.exists()) {
-          setTeam({ id: teamDoc.id, ...teamDoc.data() } as Team);
+          const nextTeam = { id: teamDoc.id, ...teamDoc.data() } as Team;
+          if (!nextTeam.memberIds.includes(user.uid)) {
+            setTeam(null);
+            setTasks([]);
+            setMembers([]);
+            setError("You are not added to any team yet.");
+            setLoading(false);
+            return;
+          }
+          setTeam(nextTeam);
+          setError(null);
         } else {
           setError("Team not found");
+          setTeam(null);
         }
       } catch (err) {
+        logger.error("Failed to fetch team details:", err);
         setError("Failed to fetch team details");
+        setTeam(null);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchTeam();
-  }, [teamId]);
+  }, [teamId, user]);
 
   // Subscribe to tasks
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || !team) return;
 
     const unsubscribe = subscribeToTasks(teamId, (newTasks) => {
       setTasks(newTasks);
@@ -58,11 +80,11 @@ export function useTeam(teamId: string | undefined) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [teamId]);
+  }, [teamId, team]);
 
   // Subscribe to members
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || !team) return;
 
     const unsubscribe = subscribeToMembers(teamId, (newMembers) => {
       setMembers(newMembers);
@@ -71,7 +93,7 @@ export function useTeam(teamId: string | undefined) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [teamId]);
+  }, [teamId, team]);
 
   const addTask = useCallback(async (task: Omit<TeamTask, "id" | "createdAt">) => {
     if (!teamId) return;

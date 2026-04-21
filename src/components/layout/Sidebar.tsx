@@ -222,12 +222,18 @@ export function Sidebar({
                 My Teams
               </p>
             </div>
-            <Link 
-              to="/app/teams" 
-              className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tight"
-            >
-              View All
-            </Link>
+            {teams.length > 0 ? (
+              <Link 
+                to="/app/teams" 
+                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-tight"
+              >
+                View All
+              </Link>
+            ) : (
+              <span className="text-[10px] font-bold text-text-muted/50 uppercase tracking-tight cursor-not-allowed">
+                View All
+              </span>
+            )}
           </div>
           
           <div className="space-y-1">

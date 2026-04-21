@@ -54,17 +54,27 @@ export const getTeams = async (uid: string): Promise<Team[]> => {
   } as Team));
 };
 
-export const subscribeToTeams = (uid: string, callback: (teams: Team[]) => void): Unsubscribe | null => {
+export const subscribeToTeams = (
+  uid: string,
+  callback: (teams: Team[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe | null => {
   if (!db) return null;
 
   const q = query(collection(db!, "teams"), where("memberIds", "array-contains", uid));
-  return onSnapshot(q, (snapshot) => {
-    const teams = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Team));
-    callback(teams);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const teams = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Team));
+      callback(teams);
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
 };
 
 // --- Members ---
