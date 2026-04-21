@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeamMember(teamId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+    }
+
+    function isTeamManager(teamId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.managerIds;
+    }
+
+    // Teams collection
+    match /teams/{teamId} {
+      allow read: if isTeamMember(teamId);
+      allow create: if isSignedIn(); // Allow creating a team
+      allow update: if isTeamManager(teamId);
+      allow delete: if false; // For now, no deletion
+
+      // Members subcollection
+      match /members/{userId} {
+        allow read: if isTeamMember(teamId);
+        allow write: if isTeamManager(teamId) || (isSignedIn() && request.auth.uid == userId);
+      }
+
+      // Tasks subcollection
+      match /tasks/{taskId} {
+        allow read: if isTeamMember(teamId);
+        
+        // Managers can do everything
+        allow create: if isTeamManager(teamId);
+        allow delete: if isTeamManager(teamId);
+        
+        allow update: if isTeamManager(teamId) || (
+          // Employees can only update their assigned task's status and acceptedByUser
+          isTeamMember(teamId) && 
+          request.auth.uid == resource.data.assignedTo &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedByUser', 'updatedAt'])
+        );
+
+        // Comments subcollection
+        match /comments/{commentId} {
+          allow read: if isTeamMember(teamId);
+          allow create: if isTeamMember(teamId);
+          allow update, delete: if isSignedIn() && request.auth.uid == resource.data.authorId;
+        }
+      }
+    }
+    
+    // User global profile (optional but useful for lookup)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npx create-vite@latest . --template react-ts --force)",
+      "Bash(npx create-vite@5 --help)",
+      "Bash(mkdir -p /tmp/tms-scaffold)",
+      "Read(//tmp/**)",
+      "Bash(npx create-vite@5 . --template react-ts)",
+      "Bash(cp:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(mkdir -p src/components/ui src/components/layout src/components/tasks src/components/calendar src/components/jarvis src/components/teams src/components/welcome src/pages src/hooks src/lib src/contexts src/types src/assets functions/src)",
+      "Bash(touch src/components/ui/.gitkeep src/components/layout/.gitkeep src/components/tasks/.gitkeep src/components/calendar/.gitkeep src/components/jarvis/.gitkeep src/components/teams/.gitkeep src/components/welcome/.gitkeep src/pages/.gitkeep src/hooks/.gitkeep src/contexts/.gitkeep src/assets/.gitkeep functions/src/.gitkeep)",
+      "Bash(npm run:*)",
+      "Bash(firebase deploy *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

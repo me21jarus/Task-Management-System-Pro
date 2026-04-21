@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light theme (default) ── */
+:root {
+  --color-bg: #faf6ef;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #fff8ee;
+  --color-text: #1a1a1a;
+  --color-text-muted: #5c5c5c;
+  --color-border: #e8decb;
+
+  /* Brand */
+  --color-primary: #c41230;
+  --color-primary-hover: #a50e28;
+  --color-primary-soft: #f7e0e5;
+  --color-accent: #e05a0a;
+  --color-gold: #c8a97e;
+
+  /* Semantic */
+  --color-success: #2d6a4f;
+  --color-warning: #e05a0a;
+  --color-danger: #c41230;
+  --color-info: #4a5859;
+}
+
+/* ── Dark theme ── */
+[data-theme="dark"] {
+  --color-bg: #0c0c0c;
+  --color-surface: #181818;
+  --color-surface-elevated: #222222;
+  --color-text: #f0e8d5;
+  --color-text-muted: #9a9a9a;
+  --color-border: #2a2a2a;
+  --color-primary: #e63050;
+  --color-primary-hover: #ff4560;
+  --color-primary-soft: rgba(230, 48, 80, 0.12);
+  --color-accent: #e05a0a;
+  --color-gold: #c8a97e;
+  --color-success: #2d6a4f;
+  --color-warning: #e05a0a;
+  --color-danger: #e63050;
+  --color-info: #4a5859;
+}
+
+/* ── Base resets ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: "DM Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
